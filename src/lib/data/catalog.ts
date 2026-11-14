@@ -42,6 +42,7 @@ export interface MerchantRules {
   pointValuePaise: number;
   maxRedeemBps: number;
   signupBonusPoints: number;
+  referral: { referrerPoints: number; refereePoints: number; minOrderPaise: number };
   tiers: { id: string; name: string; minLifetimePoints: number; multiplierBps: number }[];
 }
 
@@ -113,7 +114,9 @@ export async function getMerchantRules(): Promise<MerchantRules> {
   const supabase = createPublicClient();
   const { data: merchant, error } = await supabase
     .from("merchants")
-    .select("id, name, earn_rate_bps, point_value_paise, max_redeem_bps, signup_bonus_points")
+    .select(
+      "id, name, earn_rate_bps, point_value_paise, max_redeem_bps, signup_bonus_points, referral_referrer_points, referral_referee_points, referral_min_order_paise",
+    )
     .eq("is_default", true)
     .eq("active", true)
     .single();
@@ -133,6 +136,11 @@ export async function getMerchantRules(): Promise<MerchantRules> {
     pointValuePaise: merchant.point_value_paise,
     maxRedeemBps: merchant.max_redeem_bps,
     signupBonusPoints: merchant.signup_bonus_points,
+    referral: {
+      referrerPoints: merchant.referral_referrer_points,
+      refereePoints: merchant.referral_referee_points,
+      minOrderPaise: merchant.referral_min_order_paise,
+    },
     tiers: tiers.map((t) => ({
       id: t.id,
       name: t.name,

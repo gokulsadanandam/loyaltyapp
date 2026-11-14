@@ -81,7 +81,8 @@ test("signed-out add to cart sends you to login", async ({ page }) => {
 test("catalog renders from the database with cleaned prices", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Shop the collection" })).toBeVisible();
-  await expect(page.locator("#main li")).toHaveCount(19);
+  // The 19 seeded products (catalog E2E tests may add others in parallel).
+  await expect(page.locator('#main li a[href^="/products/LGC-"]')).toHaveCount(19);
   // LGC-009 typo fix (Phase 1 seed): ₹15,000 list / ₹11,000 sale, not ₹1,100.
   await page.goto("/products/LGC-009");
   await expect(page.getByText("₹11,000").first()).toBeVisible();

@@ -50,8 +50,15 @@ export async function latestAuthLink(page: Page, email: string): Promise<string>
 }
 
 /** Signs up through the UI and confirms via the emailed link. Ends signed in on `/`. */
-export async function signUpAndConfirm(page: Page, user: TestUser = newUser()): Promise<TestUser> {
-  await gotoHydrated(page, "/signup");
+export async function signUpAndConfirm(
+  page: Page,
+  user: TestUser = newUser(),
+  options: { referralCode?: string } = {},
+): Promise<TestUser> {
+  await gotoHydrated(
+    page,
+    options.referralCode ? `/signup?ref=${options.referralCode}` : "/signup",
+  );
   await page.getByLabel("First name").fill(user.firstName);
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
@@ -71,6 +78,17 @@ export async function signUpAndConfirm(page: Page, user: TestUser = newUser()): 
 export async function gotoHydrated(page: Page, url: string) {
   await page.goto(url);
   await page.waitForLoadState("networkidle");
+}
+
+export const OWNER = { email: "admin@example.com", password: "Password123" };
+export const CASHIER = { email: "cashier@example.com", password: "Password123" };
+
+export async function signIn(page: Page, email: string, password: string) {
+  await gotoHydrated(page, "/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL("/");
 }
 
 export async function pointsBalance(page: Page): Promise<number> {

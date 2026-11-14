@@ -16,6 +16,9 @@ export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
+  // Multi-user specs open 2–3 browser contexts each; locally the app server,
+  // Supabase containers and browsers share one machine, so cap concurrency.
+  workers: process.env.CI ? 3 : 2,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",

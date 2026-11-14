@@ -5,7 +5,10 @@ TypeScript (strict), Tailwind + shadcn/ui, and Supabase.
 
 - **Phase 1:** database foundation (schema, ledger, RLS, RPCs, pgTAP).
 - **Phase 2:** customer app. Auth with email verification, catalog, cart, checkout with
-  points, rewards, and account. Razorpay, points history and the admin console are Phase 3.
+  points, rewards, and account.
+- **Phase 3 (in progress):** points history, spendable points and nightly expiry, a staff
+  console (order fulfilment and refunds, in-store awards, catalog and rewards editor),
+  and referral rewards. Razorpay is next.
 
 ## Prerequisites
 
@@ -28,21 +31,24 @@ Confirmation and password-reset emails go to Mailpit at http://127.0.0.1:54324.
 After changing `supabase/config.toml`, restart with `npm run db:stop && npm run db:start`.
 
 Seeded logins (local only): `customer@example.com` / `Password123`,
-`admin@example.com` / `Password123` (merchant owner).
+`admin@example.com` / `Password123` (merchant owner, full staff console),
+`cashier@example.com` / `Password123` (cashier: orders and in-store awards only).
 
 ## Database layout
 
-| Migration                          | Contents                                                                                                               |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `…0100_foundation`                 | PostGIS, `private` schema, enums, deny-by-default privileges                                                           |
-| `…0200_core`                       | merchants, profiles, merchant_staff, tiers, loyalty_accounts                                                           |
-| `…0300_commerce`                   | stores (PostGIS), products, rewards, cart_items, orders, order_items, reward_redemptions                               |
-| `…0400_ledger`                     | double-entry ledger, point lots, balances, invariant triggers, `post_points`                                           |
-| `…0500_auth_rls`                   | `handle_new_user`, access-token hook, RLS helpers + policies, grants                                                   |
-| `…0600_storage`                    | `avatars` + `product-images` buckets and object policies                                                               |
-| `…0700_rpcs`                       | `place_order`, `fulfill_order`, `refund_order`, `redeem_reward`, `staff_award_points`, `admin_adjust`, `nearby_stores` |
-| `…0800_audit`                      | audit_log + triggers                                                                                                   |
-| `…0900_ledger_commit_check_rights` | Fix: the deferred zero-sum check runs with owner rights (see below)                                                    |
+| Migration                             | Contents                                                                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `…0100_foundation`                    | PostGIS, `private` schema, enums, deny-by-default privileges                                                           |
+| `…0200_core`                          | merchants, profiles, merchant_staff, tiers, loyalty_accounts                                                           |
+| `…0300_commerce`                      | stores (PostGIS), products, rewards, cart_items, orders, order_items, reward_redemptions                               |
+| `…0400_ledger`                        | double-entry ledger, point lots, balances, invariant triggers, `post_points`                                           |
+| `…0500_auth_rls`                      | `handle_new_user`, access-token hook, RLS helpers + policies, grants                                                   |
+| `…0600_storage`                       | `avatars` + `product-images` buckets and object policies                                                               |
+| `…0700_rpcs`                          | `place_order`, `fulfill_order`, `refund_order`, `redeem_reward`, `staff_award_points`, `admin_adjust`, `nearby_stores` |
+| `…0800_audit`                         | audit_log + triggers                                                                                                   |
+| `…0900_ledger_commit_check_rights`    | Fix: the deferred zero-sum check runs with owner rights (see below)                                                    |
+| `…1000_points_summary_and_expiry_job` | `my_points_summary()`; pg_cron runs `expire_points()` nightly (03:00 IST)                                              |
+| `…1100_referral_rewards`              | Referral settings on `merchants`, award trigger on order fulfilment, `my_referrals()`                                  |
 
 ### Rules the database enforces
 
@@ -109,3 +115,23 @@ and migration 0900 fixes the bug.
   `safeNextPath`. Sign-out does a full page load, so no per-user client state survives.
 - **Use `127.0.0.1:3000`.** Supabase's `site_url` and the PKCE cookie are tied to that
   origin; mixing in `localhost` breaks email-link sign-in.
+
+## Staff console (`/staff`)
+
+| Area               | Who          | Notes                                                                                                                                 |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Orders             | all staff    | Mark collected and paid (posts earned points); owner/admin can cancel or refund with a reason                                         |
+| Award              | all staff    | In-store purchases by member code; idempotent; you can't award yourself                                                               |
+| Catalog, Rewards   | owner, admin | Products are hidden rather than deleted, so order history stays intact. Images upload straight to Storage under the merchant's folder |
+| Referral programme | owner        | Points for each side and the minimum first order                                                                                      |
+
+Non-staff get a 404. Every write is re-checked in the database (RLS or the RPC's role check).
+
+## Referral rules
+
+- A member signs up with a friend's code (`/signup?ref=CODE`).
+- When the new member's **first order at or above the minimum** is completed, both people
+  earn the configured points (defaults: referrer 200, new member 100, ₹500 minimum).
+- This happens once per new member, ever, inside the fulfilment transaction.
+- A later refund doesn't take the bonus back. Revisit this if abuse appears.
+- `my_referrals()` returns counts only. Referrers never see who signed up.

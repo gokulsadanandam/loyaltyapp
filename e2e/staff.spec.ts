@@ -1,22 +1,12 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
-import { gotoHydrated, pointsBalance, signUpAndConfirm } from "./helpers";
-
-const OWNER = { email: "admin@example.com", password: "Password123" }; // seeded merchant owner
+import { gotoHydrated, OWNER, pointsBalance, signIn, signUpAndConfirm } from "./helpers";
 
 // Each test drives two users end to end (signup + email confirmation, order, staff
 // sign-in, action, customer check): give them triple the default budget.
 test.beforeEach(() => {
   test.slow();
 });
-
-async function signIn(page: Page, email: string, password: string) {
-  await gotoHydrated(page, "/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("/");
-}
 
 async function staffPage(browser: Browser) {
   const context = await browser.newContext();

@@ -1,15 +1,16 @@
-import { AwardIcon, CoinsIcon } from "lucide-react";
+import { AwardIcon, CoinsIcon, UsersIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { CopyButton } from "@/components/copy-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
-import { displayName, getAccountSummary } from "@/lib/data/account";
+import { displayName, getAccountSummary, getReferralStats } from "@/lib/data/account";
 import { getMerchantRules } from "@/lib/data/catalog";
 import { getRecentOrders } from "@/lib/data/orders";
 import { env } from "@/lib/env";
@@ -30,13 +31,15 @@ export default function AccountPage(props: PageProps<"/account">) {
 
 async function Account({ searchParams }: Pick<PageProps<"/account">, "searchParams">) {
   await requireUser("/account");
-  const [summary, rules, orders, query] = await Promise.all([
+  const [summary, rules, orders, referrals, query] = await Promise.all([
     getAccountSummary(),
     getMerchantRules(),
     getRecentOrders(),
+    getReferralStats(),
     searchParams,
   ]);
   if (!summary) return null;
+  const referralLink = `${env.NEXT_PUBLIC_SITE_URL}/signup?ref=${summary.referralCode}`;
 
   const progress = tierProgress(summary.lifetimeEarned, rules.tiers);
   const pointsValue = formatPaise(summary.available * rules.pointValuePaise);
@@ -116,15 +119,38 @@ async function Account({ searchParams }: Pick<PageProps<"/account">, "searchPara
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
             <p>Show this at the counter to earn in store.</p>
-            <p>
-              Invite friends:{" "}
-              <span className="font-mono break-all text-foreground">
-                {env.NEXT_PUBLIC_SITE_URL}/signup?ref={summary.referralCode}
-              </span>
-            </p>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UsersIcon className="size-4" aria-hidden /> Refer friends
+          </CardTitle>
+          <CardDescription>
+            You get {formatPoints(rules.referral.referrerPoints)} and your friend gets{" "}
+            {formatPoints(rules.referral.refereePoints)} when their first order of{" "}
+            {formatPaise(rules.referral.minOrderPaise)} or more is completed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code
+              className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm break-all"
+              data-testid="referral-link"
+            >
+              {referralLink}
+            </code>
+            <CopyButton value={referralLink} label="Copy link" />
+          </div>
+          <dl className="grid grid-cols-3 gap-4 text-sm" aria-label="Referral stats">
+            <Stat label="Friends joined" value={referrals.invited.toLocaleString("en-IN")} />
+            <Stat label="Rewarded" value={referrals.rewarded.toLocaleString("en-IN")} />
+            <Stat label="Points earned" value={formatPoints(referrals.pointsEarned)} />
+          </dl>
+        </CardContent>
+      </Card>
 
       <section aria-labelledby="orders-heading" className="flex flex-col gap-3">
         <h2 id="orders-heading" className="text-lg font-semibold">
@@ -162,6 +188,15 @@ async function Account({ searchParams }: Pick<PageProps<"/account">, "searchPara
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-lg font-semibold tabular-nums">{value}</dd>
     </div>
   );
 }

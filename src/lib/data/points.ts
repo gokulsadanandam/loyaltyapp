@@ -29,13 +29,20 @@ export async function getPointsHistory(
   if (!summary) return { entries: [], nextCursor: null };
   const supabase = await createClient();
 
+  // Resolve the customer ledger account first so the entries query can use the
+  // (ledger_account_id, created_at DESC) index instead of filtering through a join.
+  const { data: ledgerAccount, error: accountError } = await supabase
+    .from("ledger_accounts")
+    .select("id")
+    .eq("loyalty_account_id", summary.accountId)
+    .eq("kind", "customer")
+    .single();
+  if (accountError) throw new Error(`getPointsHistory account: ${accountError.message}`);
+
   let query = supabase
     .from("ledger_entries")
-    .select(
-      "id, amount, created_at, account:ledger_accounts!inner(kind, loyalty_account_id), txn:ledger_transactions!inner(kind, reason, ref_type, ref_id)",
-    )
-    .eq("account.kind", "customer")
-    .eq("account.loyalty_account_id", summary.accountId)
+    .select("id, amount, created_at, txn:ledger_transactions!inner(kind, reason, ref_type, ref_id)")
+    .eq("ledger_account_id", ledgerAccount.id)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(PAGE_SIZE + 1);
@@ -98,5 +105,8 @@ export function entryLabel(entry: Pick<PointsEntry, "kind" | "refType">): string
   if (entry.kind === "redeem" && entry.refType === "reward_redemption") return "Reward redeemed";
   if (entry.kind === "redeem" && entry.refType === "order") return "Used at checkout";
   if (entry.kind === "earn" && entry.refType === "loyalty_account") return "Earned in store";
+  if (entry.kind === "referral" && entry.refType === "order")
+    return "Referral bonus: your first order";
+  if (entry.kind === "referral") return "Referral bonus: a friend's first order";
   return LABELS[entry.kind];
 }

@@ -78,3 +78,21 @@ export function displayName(summary: Pick<AccountSummary, "firstName" | "lastNam
   const name = [summary.firstName, summary.lastName].filter(Boolean).join(" ").trim();
   return name.length > 0 ? name : (summary.email ?? "Member");
 }
+
+export interface ReferralStats {
+  invited: number;
+  rewarded: number;
+  pointsEarned: number;
+}
+
+/** Counts only: the referred members' identities are never exposed (see my_referrals). */
+export async function getReferralStats(): Promise<ReferralStats> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_referrals").maybeSingle();
+  if (error) throw new Error(`referrals: ${error.message}`);
+  return {
+    invited: data?.invited ?? 0,
+    rewarded: data?.rewarded ?? 0,
+    pointsEarned: data?.points_earned ?? 0,
+  };
+}

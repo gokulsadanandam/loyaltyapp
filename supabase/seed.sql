@@ -127,6 +127,12 @@ values
    extensions.crypt('Password123', extensions.gen_salt('bf')), now(),
    '{"provider":"email","providers":["email"]}',
    '{"first_name":"Dev","last_name":"Admin"}',
+   now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-000000000003',
+   'authenticated', 'authenticated', 'cashier@example.com',
+   extensions.crypt('Password123', extensions.gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}',
+   '{"first_name":"Kiran","last_name":"Cashier"}',
    now(), now(), '', '', '', '');
 
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -134,10 +140,12 @@ select gen_random_uuid(), u.id, u.id::text,
        jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
        'email', now(), now(), now()
 from auth.users u
-where u.id in ('c0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002');
+where u.id in ('c0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002',
+               'c0000000-0000-4000-8000-000000000003');
 
 insert into public.merchant_staff (merchant_id, user_id, role)
-values ('b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', 'owner');
+values ('b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', 'owner'),
+       ('b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000003', 'cashier');
 
 -- A starter cart for the customer so checkout can be exercised immediately.
 insert into public.cart_items (merchant_id, account_id, product_id, qty)

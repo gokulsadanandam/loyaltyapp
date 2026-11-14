@@ -1,8 +1,11 @@
 import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { Logo } from "@/components/logo";
+
+import { StaffNav } from "./staff-nav";
 
 export const metadata: Metadata = { title: { default: "Staff", template: "%s · Staff" } };
 
@@ -15,14 +18,10 @@ export default function StaffLayout({ children }: LayoutProps<"/staff">) {
             <Logo compact />
           </Link>
           <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">Staff</span>
-          <nav aria-label="Staff" className="flex items-center gap-3 text-sm sm:gap-4">
-            <Link href="/staff/orders" className="text-muted-foreground hover:text-foreground">
-              Orders
-            </Link>
-            <Link href="/staff/award" className="text-muted-foreground hover:text-foreground">
-              Award points
-            </Link>
-          </nav>
+          {/* Role-dependent links: streamed after the static shell. */}
+          <Suspense fallback={null}>
+            <StaffNav />
+          </Suspense>
           <Link
             href="/"
             className="ml-auto flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

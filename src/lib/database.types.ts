@@ -296,6 +296,9 @@ export type Database = {
           name: string;
           point_expiry_days: number | null;
           point_value_paise: number;
+          referral_min_order_paise: number;
+          referral_referee_points: number;
+          referral_referrer_points: number;
           signup_bonus_points: number;
           slug: string;
           updated_at: string;
@@ -312,6 +315,9 @@ export type Database = {
           name: string;
           point_expiry_days?: number | null;
           point_value_paise?: number;
+          referral_min_order_paise?: number;
+          referral_referee_points?: number;
+          referral_referrer_points?: number;
           signup_bonus_points?: number;
           slug: string;
           updated_at?: string;
@@ -327,6 +333,9 @@ export type Database = {
           name?: string;
           point_expiry_days?: number | null;
           point_value_paise?: number;
+          referral_min_order_paise?: number;
+          referral_referee_points?: number;
+          referral_referrer_points?: number;
           signup_bonus_points?: number;
           slug?: string;
           updated_at?: string;
@@ -876,6 +885,14 @@ export type Database = {
           expiring_30d: number;
           lifetime_earned: number;
           next_expiry_at: string;
+        }[];
+      };
+      my_referrals: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          invited: number;
+          points_earned: number;
+          rewarded: number;
         }[];
       };
       nearby_stores: {

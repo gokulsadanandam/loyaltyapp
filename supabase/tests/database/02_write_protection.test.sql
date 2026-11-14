@@ -149,6 +149,7 @@ select results_eq(
   $$ values ('admin_adjust(uuid,integer,text,uuid)'),
             ('fulfill_order(uuid,text)'),
             ('my_points_summary()'),
+            ('my_referrals()'),
             ('nearby_stores(double precision,double precision,integer,uuid)'),
             ('place_order(uuid,uuid,jsonb,integer,uuid)'),
             ('private.can_read_account(uuid)'),
