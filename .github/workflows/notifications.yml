@@ -1,0 +1,30 @@
+name: Deliver notification emails
+
+# Drains the email outbox every 10 minutes. Runs from GitHub rather than Vercel
+# Cron because Vercel's Hobby plan only allows daily crons. Overlapping or
+# repeated runs are safe: rows are claimed with FOR UPDATE SKIP LOCKED.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Call the delivery endpoint
+        env:
+          URL: ${{ vars.PRODUCTION_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::PRODUCTION_URL or CRON_SECRET not configured; skipping."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -X POST -H "Authorization: Bearer $CRON_SECRET" \
+            "$URL/api/notifications/deliver"

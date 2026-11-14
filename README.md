@@ -21,7 +21,7 @@ TypeScript (strict), Tailwind + shadcn/ui, and Supabase.
 npm install
 npm run db:start          # boots local Supabase; prints URL + keys
 cp .env.example .env.local  # paste the publishable key from `npx supabase status`
-npm run db:reset          # migrations + seed.sql + storage objects
+npm run db:reset          # migrations + seed (catalog + dev users) + storage objects
 npm run db:test           # pgTAP suite (supabase/tests/database)
 npm run db:types          # regenerate src/lib/database.types.ts
 npm run dev               # http://127.0.0.1:3000 (use 127.0.0.1, not localhost: see below)
@@ -154,10 +154,16 @@ opted out). `/api/notifications/deliver` claims a batch with `FOR UPDATE SKIP LO
 sends, and records `sent`; failures retry up to 3 times, then stay `failed`.
 
 - **Auth:** `Authorization: Bearer $CRON_SECRET`, compared in constant time.
-- **Schedule:** `vercel.json` runs it every 10 minutes on Vercel Cron.
+- **Schedule:** `.github/workflows/notifications.yml` calls it every 10 minutes (Vercel Hobby only allows daily crons).
 - **Transport:** Resend when `RESEND_API_KEY` is set. Locally it uses Mailpit's HTTP API
   (`MAILPIT_URL`), so emails show up at http://127.0.0.1:54324.
 - **Run it by hand:**
   `curl -X POST -H "Authorization: Bearer $CRON_SECRET" http://127.0.0.1:3000/api/notifications/deliver`
 
 This route is the only place the service-role key (`SUPABASE_SECRET_KEY`) is used.
+
+## Deployment
+
+CI and production deploys run from `.github/workflows/ci.yml`; setup steps are in
+[DEPLOYMENT.md](DEPLOYMENT.md). In short, a push to `master` that passes typecheck, lint,
+unit, pgTAP and E2E applies migrations to Supabase and then deploys to Vercel.

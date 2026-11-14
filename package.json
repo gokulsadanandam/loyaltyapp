@@ -55,6 +55,7 @@
     "tailwindcss": "4.3.3",
     "typescript": "^5",
     "typescript-eslint": "^8.72.2",
+    "vercel": "^65.16.0",
     "vitest": "^5.1.0"
   },
   "engines": {
