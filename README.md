@@ -8,7 +8,7 @@ TypeScript (strict), Tailwind + shadcn/ui, and Supabase.
   points, rewards, and account.
 - **Phase 3 (in progress):** points history, spendable points and nightly expiry, a staff
   console (order fulfilment and refunds, in-store awards, catalog and rewards editor),
-  and referral rewards. Razorpay is next.
+  referral rewards, and member notifications (tier-up and points expiry). Razorpay is next.
 
 ## Prerequisites
 
@@ -49,6 +49,7 @@ Seeded logins (local only): `customer@example.com` / `Password123`,
 | `…0900_ledger_commit_check_rights`    | Fix: the deferred zero-sum check runs with owner rights (see below)                                                    |
 | `…1000_points_summary_and_expiry_job` | `my_points_summary()`; pg_cron runs `expire_points()` nightly (03:00 IST)                                              |
 | `…1100_referral_rewards`              | Referral settings on `merchants`, award trigger on order fulfilment, `my_referrals()`                                  |
+| `…1200_notifications`                 | Notifications feed + email outbox, tier-up/expiry triggers, nightly expiry reminders                                   |
 
 ### Rules the database enforces
 
@@ -135,3 +136,28 @@ Non-staff get a 404. Every write is re-checked in the database (RLS or the RPC's
 - This happens once per new member, ever, inside the fulfilment transaction.
 - A later refund doesn't take the bonus back. Revisit this if abuse appears.
 - `my_referrals()` returns counts only. Referrers never see who signed up.
+
+## Notifications
+
+| Event           | When                                                                               | Deduplicated by                                  |
+| --------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Tier up         | `tier_id` moves to a higher tier (never on a downgrade, never for the signup tier) | account and tier, so each tier is announced once |
+| Points expiring | Nightly 02:30 IST: lots expiring within 7 days                                     | account and earliest expiry date                 |
+| Points expired  | The 03:00 IST sweep; several lots fold into one message                            | account and IST day                              |
+
+Members see a bell with an unread count and a feed at `/notifications`, and can turn
+email off there. Writes come only from database functions. Members can read the message
+and set `read_at`, nothing else.
+
+**Email delivery** uses an outbox: rows start as `pending` (or `skipped` if the member
+opted out). `/api/notifications/deliver` claims a batch with `FOR UPDATE SKIP LOCKED`,
+sends, and records `sent`; failures retry up to 3 times, then stay `failed`.
+
+- **Auth:** `Authorization: Bearer $CRON_SECRET`, compared in constant time.
+- **Schedule:** `vercel.json` runs it every 10 minutes on Vercel Cron.
+- **Transport:** Resend when `RESEND_API_KEY` is set. Locally it uses Mailpit's HTTP API
+  (`MAILPIT_URL`), so emails show up at http://127.0.0.1:54324.
+- **Run it by hand:**
+  `curl -X POST -H "Authorization: Bearer $CRON_SECRET" http://127.0.0.1:3000/api/notifications/deliver`
+
+This route is the only place the service-role key (`SUPABASE_SECRET_KEY`) is used.

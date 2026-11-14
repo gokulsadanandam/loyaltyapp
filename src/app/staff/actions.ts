@@ -116,6 +116,10 @@ export async function awardPoints(
   if (!ctx) return notStaff;
 
   const { memberCode, amount: amountPaise, storeId, idempotencyKey } = parsed.data;
+  // Read the member's tier BEFORE awarding: the RPC prices the award at the current
+  // tier, and the award itself can move them up a tier (wrong multiplier afterwards).
+  const [member, rules] = await Promise.all([lookupMember(ctx, memberCode), getMerchantRules()]);
+
   const supabase = await createClient();
   const { error } = await supabase.rpc("staff_award_points", {
     p_member_code: memberCode,
@@ -129,8 +133,7 @@ export async function awardPoints(
   }
 
   // Cashiers can't read ledger lines (RLS: owner/admin only), so mirror the RPC's
-  // own formula with the member's tier to show what was awarded.
-  const [member, rules] = await Promise.all([lookupMember(ctx, memberCode), getMerchantRules()]);
+  // formula with the pre-award tier to show what was awarded.
   const points = member
     ? pointsForSpend(amountPaise, {
         earnRateBps: rules.earnRateBps,

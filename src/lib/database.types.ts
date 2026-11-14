@@ -342,6 +342,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          body: string;
+          created_at: string;
+          data: NonNullable<Json>;
+          dedupe_key: string;
+          email_attempts: number;
+          email_error: string | null;
+          email_status: string;
+          emailed_at: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          link: string | null;
+          merchant_id: string;
+          read_at: string | null;
+          title: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body: string;
+          created_at?: string;
+          data?: NonNullable<Json>;
+          dedupe_key: string;
+          email_attempts?: number;
+          email_error?: string | null;
+          email_status?: string;
+          emailed_at?: string | null;
+          id?: string;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          link?: string | null;
+          merchant_id: string;
+          read_at?: string | null;
+          title: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          data?: NonNullable<Json>;
+          dedupe_key?: string;
+          email_attempts?: number;
+          email_error?: string | null;
+          email_status?: string;
+          emailed_at?: string | null;
+          id?: string;
+          kind?: Database["public"]["Enums"]["notification_kind"];
+          link?: string | null;
+          merchant_id?: string;
+          read_at?: string | null;
+          title?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_merchant_id_fkey";
+            columns: ["merchant_id"];
+            isOneToOne: false;
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       order_items: {
         Row: {
           id: number;
@@ -610,6 +673,7 @@ export type Database = {
         Row: {
           avatar_path: string | null;
           created_at: string;
+          email_notifications: boolean;
           first_name: string | null;
           id: string;
           last_name: string | null;
@@ -623,6 +687,7 @@ export type Database = {
         Insert: {
           avatar_path?: string | null;
           created_at?: string;
+          email_notifications?: boolean;
           first_name?: string | null;
           id: string;
           last_name?: string | null;
@@ -635,6 +700,7 @@ export type Database = {
         Update: {
           avatar_path?: string | null;
           created_at?: string;
+          email_notifications?: boolean;
           first_name?: string | null;
           id?: string;
           last_name?: string | null;
@@ -874,6 +940,21 @@ export type Database = {
         };
         Returns: string;
       };
+      claim_notification_emails: {
+        Args: { p_limit?: number };
+        Returns: {
+          body: string;
+          email: string;
+          first_name: string;
+          id: string;
+          link: string;
+          title: string;
+        }[];
+      };
+      complete_notification_email: {
+        Args: { p_error?: string; p_id: string; p_ok: boolean };
+        Returns: undefined;
+      };
       custom_access_token_hook: { Args: { event: Json }; Returns: Json };
       fulfill_order: { Args: { p_order_id: string; p_payment_ref?: string }; Returns: string };
       my_points_summary: {
@@ -943,6 +1024,7 @@ export type Database = {
         | "adjust"
         | "referral"
         | "migration";
+      notification_kind: "tier_up" | "points_expiring" | "points_expired";
       order_status: "pending" | "fulfilled" | "cancelled" | "refunded";
       redemption_status: "issued" | "fulfilled" | "cancelled";
       staff_role: "owner" | "admin" | "cashier";
@@ -1069,6 +1151,7 @@ export const Constants = {
         "referral",
         "migration",
       ],
+      notification_kind: ["tier_up", "points_expiring", "points_expired"],
       order_status: ["pending", "fulfilled", "cancelled", "refunded"],
       redemption_status: ["issued", "fulfilled", "cancelled"],
       staff_role: ["owner", "admin", "cashier"],
