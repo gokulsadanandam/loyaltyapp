@@ -13,6 +13,8 @@ import type { Store } from "@/lib/data/catalog";
 import type { MemberLookup } from "@/lib/data/staff";
 import { formatPoints } from "@/lib/format";
 
+import { QrScanner } from "./qr-scanner";
+
 type Step =
   | { kind: "lookup" }
   | { kind: "amount"; member: MemberLookup }
@@ -36,14 +38,18 @@ export function AwardForm({ stores }: { stores: Store[] }) {
     setKey(crypto.randomUUID());
   };
 
-  const lookup = (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const lookupValue = (value: string) => {
     setError(null);
     startTransition(async () => {
-      const result = await findMember(code);
+      const result = await findMember(value);
       if (result.ok) setStep({ kind: "amount", member: result.data });
       else setError(result.error);
     });
+  };
+
+  const lookup = (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    lookupValue(code);
   };
 
   const award = (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -88,20 +94,36 @@ export function AwardForm({ stores }: { stores: Store[] }) {
                   id="member-code"
                   value={code}
                   onChange={(e) => {
-                    setCode(e.target.value.toUpperCase());
+                    // QR tokens (LQ1.…) are case-sensitive; plain member codes are not.
+                    const v = e.target.value.trim();
+                    setCode(v.startsWith("LQ1.") ? v : v.toUpperCase());
                   }}
                   autoCapitalize="characters"
                   autoComplete="off"
                   className="font-mono tracking-wider"
                   placeholder="LY…"
                 />
-                <FieldDescription>Shown on the customer&apos;s account page.</FieldDescription>
+                <FieldDescription>
+                  Scan the QR on the customer&apos;s account page, or type their member code.
+                </FieldDescription>
               </Field>
               {error ? <FormMessage status="error" message={error} /> : null}
-              <Button type="submit" disabled={pending || code.trim().length < 4}>
-                <UserRoundSearchIcon aria-hidden />
-                {pending ? "Looking up…" : "Find member"}
-              </Button>
+              <div className="flex gap-2">
+                <QrScanner
+                  onScan={(value) => {
+                    setCode(value);
+                    lookupValue(value);
+                  }}
+                />
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={pending || code.trim().length < 4}
+                >
+                  <UserRoundSearchIcon aria-hidden />
+                  {pending ? "Looking up…" : "Find member"}
+                </Button>
+              </div>
             </FieldGroup>
           </form>
         ) : (

@@ -8,7 +8,9 @@ TypeScript (strict), Tailwind + shadcn/ui, and Supabase.
   points, rewards, and account.
 - **Phase 3 (in progress):** points history, spendable points and nightly expiry, a staff
   console (order fulfilment and refunds, in-store awards, catalog and rewards editor),
-  referral rewards, and member notifications (tier-up and points expiry). Razorpay is next.
+  referral rewards, and member notifications (tier-up and points expiry).
+- **Phase 4 (in progress):** test-gated CI/CD (see [DEPLOYMENT.md](DEPLOYMENT.md)), merchant
+  analytics, and rotating member QR codes. Razorpay is next.
 
 ## Prerequisites
 
@@ -50,6 +52,7 @@ Seeded logins (local only): `customer@example.com` / `Password123`,
 | `…1000_points_summary_and_expiry_job` | `my_points_summary()`; pg_cron runs `expire_points()` nightly (03:00 IST)                                              |
 | `…1100_referral_rewards`              | Referral settings on `merchants`, award trigger on order fulfilment, `my_referrals()`                                  |
 | `…1200_notifications`                 | Notifications feed + email outbox, tier-up/expiry triggers, nightly expiry reminders                                   |
+| `…1300_merchant_analytics`            | `merchant_analytics(p_days)`: liability, points flow, members, revenue, repeat rate, tier mix, daily series            |
 
 ### Rules the database enforces
 
@@ -119,12 +122,13 @@ and migration 0900 fixes the bug.
 
 ## Staff console (`/staff`)
 
-| Area               | Who          | Notes                                                                                                                                 |
-| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Orders             | all staff    | Mark collected and paid (posts earned points); owner/admin can cancel or refund with a reason                                         |
-| Award              | all staff    | In-store purchases by member code; idempotent; you can't award yourself                                                               |
-| Catalog, Rewards   | owner, admin | Products are hidden rather than deleted, so order history stays intact. Images upload straight to Storage under the merchant's folder |
-| Referral programme | owner        | Points for each side and the minimum first order                                                                                      |
+| Area               | Who          | Notes                                                                                                                                         |
+| ------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Orders             | all staff    | Mark collected and paid (posts earned points); owner/admin can cancel or refund with a reason                                                 |
+| Award              | all staff    | In-store purchases by member code; idempotent; you can't award yourself                                                                       |
+| Catalog, Rewards   | owner, admin | Products are hidden rather than deleted, so order history stays intact. Images upload straight to Storage under the merchant's folder         |
+| Analytics          | owner, admin | Points owed (liability), redemption rate, active and new members, revenue, repeat rate, tier mix, daily issued vs redeemed (7, 30 or 90 days) |
+| Referral programme | owner        | Points for each side and the minimum first order                                                                                              |
 
 Non-staff get a 404. Every write is re-checked in the database (RLS or the RPC's role check).
 
@@ -167,3 +171,17 @@ This route is the only place the service-role key (`SUPABASE_SECRET_KEY`) is use
 CI and production deploys run from `.github/workflows/ci.yml`; setup steps are in
 [DEPLOYMENT.md](DEPLOYMENT.md). In short, a push to `master` that passes typecheck, lint,
 unit, pgTAP and E2E applies migrations to Supabase and then deploys to Vercel.
+
+## Member QR codes
+
+The account page shows a QR code that changes every minute:
+`LQ1.<member code>.<minute>.<signature>`, signed with an HMAC-SHA256 key
+(`QR_HMAC_SECRET`, server-only).
+
+- Staff verify a code within about 2 minutes of it being issued, so a screenshot stops
+  working quickly. Changing the member code or the minute breaks the signature.
+- At `/staff/award`, staff can scan with the camera (browsers with `BarcodeDetector`:
+  Chrome, Edge, Android). A USB or Bluetooth scanner that types into the member-code box
+  also works, and so does typing the code by hand.
+- A QR code only identifies the member. Points are still awarded through
+  `staff_award_points` using the staff member's own session.

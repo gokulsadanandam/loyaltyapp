@@ -42,3 +42,17 @@ export function serverEnv(): ServerEnv {
   cached = parsed.data;
   return cached;
 }
+
+/** Member QR signing key, validated separately so QR codes don't need email config. */
+export function qrSecret(): string {
+  const parsed = z
+    .string()
+    .min(32, "QR_HMAC_SECRET must be at least 32 characters.")
+    .safeParse(process.env.QR_HMAC_SECRET);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid QR_HMAC_SECRET (see .env.example): ${parsed.error.issues[0]?.message ?? ""}`,
+    );
+  }
+  return parsed.data;
+}

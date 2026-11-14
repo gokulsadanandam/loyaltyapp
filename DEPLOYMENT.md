@@ -59,6 +59,7 @@ Do these in order. Steps 1–5 take about 30 minutes; nothing deploys until step
 | `SUPABASE_SECRET_KEY`                  | secret key. Server only; used only by the email delivery route                            |
 | `CRON_SECRET`                          | 24+ random characters (`openssl rand -hex 24`)                                            |
 | `EMAIL_FROM`                           | for example `Your Shop <hello@yourshop.com>` (a domain verified with your email provider) |
+| `QR_HMAC_SECRET`                       | 32+ random characters (`openssl rand -base64 32`); signs member QR codes                  |
 | `RESEND_API_KEY`                       | Resend API key, for notification emails                                                   |
 
 ### 4. GitHub secrets and variables

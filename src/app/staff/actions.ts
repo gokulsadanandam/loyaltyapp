@@ -7,6 +7,8 @@ import { getMerchantRules } from "@/lib/data/catalog";
 import { getStaffContext, lookupMember, type MemberLookup } from "@/lib/data/staff";
 import { errorCode, userMessage, type ActionResult } from "@/lib/errors";
 import { pointsForSpend } from "@/lib/points";
+import { looksLikeMemberToken, verifyMemberToken } from "@/lib/member-token";
+import { qrSecret } from "@/lib/server-env";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -75,6 +77,20 @@ const memberCodeSchema = z
   .regex(/^[A-Z0-9]{4,20}$/, "Member codes are letters and numbers.");
 
 export async function findMember(code: string): Promise<ActionResult<MemberLookup>> {
+  // A scanned QR token resolves to the member code it was issued for.
+  if (looksLikeMemberToken(code.trim())) {
+    const check = verifyMemberToken(qrSecret(), code);
+    if (!check.ok) {
+      return {
+        ok: false,
+        error:
+          check.reason === "expired"
+            ? "That QR code has expired. Ask the customer to refresh their account page."
+            : "That QR code isn't valid.",
+      };
+    }
+    code = check.memberCode;
+  }
   const parsed = memberCodeSchema.safeParse(code);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid code." };

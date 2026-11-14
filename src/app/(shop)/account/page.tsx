@@ -18,6 +18,7 @@ import { formatDate, formatDateTime, formatPaise, formatPoints, shortOrderId } f
 import { tierProgress } from "@/lib/points";
 
 import { OrderStatusBadge } from "../orders/status-badge";
+import { MemberQr } from "./member-qr";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -118,7 +119,8 @@ async function Account({ searchParams }: Pick<PageProps<"/account">, "searchPara
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <p>Show this at the counter to earn in store.</p>
+            <MemberQr />
+            <p className="text-center">Show this at the counter to earn in store.</p>
           </CardContent>
         </Card>
       </div>
