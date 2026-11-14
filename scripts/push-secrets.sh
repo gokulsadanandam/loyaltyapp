@@ -11,6 +11,10 @@ cd "$(dirname "$0")/.."
 FILE=.env.deploy
 
 [[ -f $FILE ]] || { echo "Missing $FILE (copy .env.deploy.example)"; exit 1; }
+# Terminals opened before `winget install GitHub.cli` don't have it on PATH yet.
+if ! command -v gh >/dev/null && [[ -x "/c/Program Files/GitHub CLI/gh.exe" ]]; then
+  PATH="$PATH:/c/Program Files/GitHub CLI"
+fi
 command -v gh >/dev/null || { echo "Install the GitHub CLI: winget install GitHub.cli, then gh auth login"; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "Run: gh auth login"; exit 1; }
 [[ -f .vercel/project.json ]] || { echo "Run: npx vercel link"; exit 1; }
@@ -54,6 +58,17 @@ done
 [[ $SUPABASE_ACCESS_TOKEN == sbp_* ]] || { echo "SUPABASE_ACCESS_TOKEN should start with sbp_"; exit 1; }
 [[ $PRODUCTION_URL == https://* ]] || { echo "PRODUCTION_URL must start with https://"; exit 1; }
 
+# Local CLI, never npx: npx echoes the full command line.
+VERCEL=(node_modules/.bin/vercel)
+[[ -x ${VERCEL[0]} ]] || { echo "Run npm install first"; exit 1; }
+"${VERCEL[@]}" whoami >/dev/null 2>&1 || { echo "Run: npx vercel login"; exit 1; }
+# The token CI will use must reach this project (scope = the team the project lives in).
+if ! "${VERCEL[@]}" project inspect "$VERCEL_PROJECT_ID" --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN" >/dev/null 2>&1; then
+  echo "VERCEL_TOKEN can't access this project. Recreate it at vercel.com/account/settings/tokens"
+  echo "with Scope set to the team that owns loyalty-web, then update .env.deploy."
+  exit 1
+fi
+
 echo "== GitHub ($(gh repo view --json nameWithOwner -q .nameWithOwner))"
 for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF \
   VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID CRON_SECRET; do
@@ -61,10 +76,11 @@ for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF \
 done
 gh variable set PRODUCTION_URL --body "$PRODUCTION_URL"
 
-echo "== Vercel (production)"
+echo "== Vercel (production, via your vercel login)"
+# Uses your own CLI login, not VERCEL_TOKEN (that one is only for CI). --no-sensitive keeps
+# values readable by `vercel pull` in CI; they are still encrypted at rest.
 vercel_set() {
-  npx --yes vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
-  printf '%s' "$2" | npx --yes vercel env add "$1" production --token "$VERCEL_TOKEN" >/dev/null
+  printf '%s' "$2" | "${VERCEL[@]}" env add "$1" --environment production --force --no-sensitive >/dev/null
   echo "✓ $1"
 }
 vercel_set NEXT_PUBLIC_SUPABASE_URL "$SUPABASE_URL"
