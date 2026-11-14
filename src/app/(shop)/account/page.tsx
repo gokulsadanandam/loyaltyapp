@@ -13,7 +13,7 @@ import { displayName, getAccountSummary } from "@/lib/data/account";
 import { getMerchantRules } from "@/lib/data/catalog";
 import { getRecentOrders } from "@/lib/data/orders";
 import { env } from "@/lib/env";
-import { formatDateTime, formatPaise, formatPoints, shortOrderId } from "@/lib/format";
+import { formatDate, formatDateTime, formatPaise, formatPoints, shortOrderId } from "@/lib/format";
 import { tierProgress } from "@/lib/points";
 
 import { OrderStatusBadge } from "../orders/status-badge";
@@ -39,7 +39,7 @@ async function Account({ searchParams }: Pick<PageProps<"/account">, "searchPara
   if (!summary) return null;
 
   const progress = tierProgress(summary.lifetimeEarned, rules.tiers);
-  const pointsValue = formatPaise(summary.balance * rules.pointValuePaise);
+  const pointsValue = formatPaise(summary.available * rules.pointValuePaise);
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,11 +61,19 @@ async function Account({ searchParams }: Pick<PageProps<"/account">, "searchPara
               <CoinsIcon className="size-4" aria-hidden /> Points balance
             </CardDescription>
             <CardTitle className="text-3xl tabular-nums">
-              {summary.balance.toLocaleString("en-IN")}
+              {summary.available.toLocaleString("en-IN")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Worth {pointsValue} at checkout.
+          <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <p>Worth {pointsValue} at checkout.</p>
+            {summary.expiringSoon > 0 && summary.nextExpiryAt ? (
+              <p className="text-amber-700 dark:text-amber-400" data-testid="expiring-soon">
+                {formatPoints(summary.expiringSoon)} expire by {formatDate(summary.nextExpiryAt)}.
+              </p>
+            ) : null}
+            <Link href="/account/points" className="text-foreground underline underline-offset-4">
+              Points history
+            </Link>
           </CardContent>
         </Card>
 

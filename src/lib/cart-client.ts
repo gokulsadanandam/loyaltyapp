@@ -16,9 +16,10 @@ export class NotSignedInError extends Error {
   }
 }
 
-async function hasSession() {
+/** Signed-in user's id from the local session (a UX check; RLS is the real boundary). */
+async function sessionUserId(): Promise<string | null> {
   const { data } = await createClient().auth.getSession();
-  return Boolean(data.session);
+  return data.session?.user.id ?? null;
 }
 
 export function useCart(enabled = true) {
@@ -31,10 +32,10 @@ export function useCart(enabled = true) {
 
 function useAccountRef() {
   const queryClient = useQueryClient();
-  return () =>
+  return (userId: string) =>
     queryClient.query({
-      queryKey: cartKeys.account,
-      queryFn: () => fetchAccountRef(createClient()),
+      queryKey: [...cartKeys.account, userId],
+      queryFn: () => fetchAccountRef(createClient(), userId),
       staleTime: Infinity,
     });
 }
@@ -53,8 +54,9 @@ export function useSetCartQty() {
 
   return useMutation({
     mutationFn: async ({ productId, qty }: SetQtyInput) => {
-      if (!(await hasSession())) throw new NotSignedInError();
-      await setCartQty(createClient(), await getAccount(), productId, qty);
+      const userId = await sessionUserId();
+      if (!userId) throw new NotSignedInError();
+      await setCartQty(createClient(), await getAccount(userId), productId, qty);
     },
     onMutate: async ({ productId, qty, product }) => {
       await queryClient.cancelQueries({ queryKey: cartKeys.cart });

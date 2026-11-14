@@ -18,9 +18,9 @@ export default function ShopLayout({ children }: LayoutProps<"/">) {
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
           <Link href="/" aria-label="Loyalty Demo Store home">
-            <Logo />
+            <Logo compact />
           </Link>
-          <nav aria-label="Main" className="hidden items-center gap-4 text-sm sm:flex">
+          <nav aria-label="Main" className="flex items-center gap-3 text-sm sm:gap-4">
             <Link href="/" className="text-muted-foreground hover:text-foreground">
               Shop
             </Link>

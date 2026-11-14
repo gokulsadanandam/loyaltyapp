@@ -50,7 +50,7 @@ async function Checkout() {
     <CheckoutForm
       lines={lines}
       stores={stores}
-      availablePoints={summary?.balance ?? 0}
+      availablePoints={summary?.available ?? 0}
       earnRule={{
         earnRateBps: rules.earnRateBps,
         multiplierBps: summary?.tier?.multiplierBps ?? 10_000,

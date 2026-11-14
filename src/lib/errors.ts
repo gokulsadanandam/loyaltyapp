@@ -20,6 +20,15 @@ const MESSAGES: Record<string, string> = {
   idempotency_key_reused:
     "That request was already used for something else. Please refresh and try again.",
   idempotency_key_required: "Something went wrong. Please refresh and try again.",
+  // Staff console
+  member_not_found: "No member with that code.",
+  self_award_forbidden: "You can't award points to your own account.",
+  invalid_amount: "Enter an amount between ₹1 and ₹1,00,000.",
+  amount_too_small: "That amount is too small to earn any points.",
+  order_not_found: "Order not found.",
+  invalid_order_status: "This order can't be changed in its current state.",
+  order_already_fulfilled: "This order was already completed.",
+  reason_required: "Please give a reason.",
 };
 
 const FALLBACK = "Something went wrong. Please try again.";

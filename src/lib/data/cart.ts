@@ -49,11 +49,15 @@ export async function fetchCart(supabase: Client): Promise<CartLine[]> {
   }));
 }
 
-/** The caller's account at the default merchant (needed as the cart's foreign key). */
-export async function fetchAccountRef(supabase: Client): Promise<AccountRef> {
+/**
+ * The caller's account at the default merchant (needed as the cart's foreign key).
+ * Filtered by user id explicitly: RLS also lets staff read every customer's account.
+ */
+export async function fetchAccountRef(supabase: Client, userId: string): Promise<AccountRef> {
   const { data, error } = await supabase
     .from("loyalty_accounts")
     .select("id, merchant_id, merchant:merchants!inner(is_default)")
+    .eq("user_id", userId)
     .eq("merchant.is_default", true)
     .single();
   if (error) throw error;

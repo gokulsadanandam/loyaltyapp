@@ -17,7 +17,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function AccountMenu({ name, tier }: { name: string; tier: string | null }) {
+export function AccountMenu({
+  name,
+  tier,
+  isStaff,
+}: {
+  name: string;
+  tier: string | null;
+  isStaff: boolean;
+}) {
   const queryClient = useQueryClient();
   const [pending, startTransition] = useTransition();
   return (
@@ -39,6 +47,10 @@ export function AccountMenu({ name, tier }: { name: string; tier: string | null 
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/account" />}>Account &amp; orders</DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/rewards" />}>Rewards</DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/account/points" />}>Points history</DropdownMenuItem>
+        {isStaff ? (
+          <DropdownMenuItem render={<Link href="/staff/orders" />}>Staff console</DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           disabled={pending}

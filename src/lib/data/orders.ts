@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { Enums } from "@/lib/database.types";
+import { getAccountSummary } from "@/lib/data/account";
 import { createClient } from "@/lib/supabase/server";
 
 export interface OrderDetail {
@@ -66,11 +67,15 @@ export async function getOrder(orderId: string): Promise<OrderDetail | null> {
   };
 }
 
+/** The caller's own orders. Filtered explicitly: RLS also lets staff read every order. */
 export async function getRecentOrders(limit = 10): Promise<OrderSummary[]> {
+  const summary = await getAccountSummary();
+  if (!summary) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
     .select("id, status, created_at, total_paise, items:order_items(qty)")
+    .eq("account_id", summary.accountId)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(`getRecentOrders: ${error.message}`);

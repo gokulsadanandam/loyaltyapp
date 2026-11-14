@@ -38,7 +38,7 @@ async function RewardList() {
     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {live.map((reward) => (
         <li key={reward.id}>
-          <RewardCard reward={reward} balance={summary ? summary.balance : null} />
+          <RewardCard reward={reward} balance={summary ? summary.available : null} />
         </li>
       ))}
     </ul>

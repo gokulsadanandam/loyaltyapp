@@ -18,8 +18,13 @@ export interface AccountSummary {
   memberCode: string;
   referralCode: string;
   accountId: string;
+  /** Booked balance; may include expired lots the nightly sweep hasn't cleared yet. */
   balance: number;
+  /** What checkout and rewards will actually accept. Show this to customers. */
+  available: number;
   lifetimeEarned: number;
+  expiringSoon: number;
+  nextExpiryAt: string | null;
   tier: { name: string; multiplierBps: number } | null;
 }
 
@@ -28,7 +33,7 @@ export const getAccountSummary = cache(async (): Promise<AccountSummary | null> 
   if (!user) return null;
   const supabase = await createClient();
 
-  const [profileRes, accountRes] = await Promise.all([
+  const [profileRes, accountRes, pointsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("first_name, last_name, member_code, referral_code")
@@ -36,18 +41,19 @@ export const getAccountSummary = cache(async (): Promise<AccountSummary | null> 
       .single(),
     supabase
       .from("loyalty_accounts")
-      .select(
-        "id, merchant:merchants!inner(is_default), tier:tiers(name, multiplier_bps), balance:point_balances(balance, lifetime_earned)",
-      )
+      .select("id, merchant:merchants!inner(is_default), tier:tiers(name, multiplier_bps)")
       .eq("user_id", user.id)
       .eq("merchant.is_default", true)
       .single(),
+    supabase.rpc("my_points_summary").maybeSingle(),
   ]);
   if (profileRes.error) throw new Error(`profile: ${profileRes.error.message}`);
   if (accountRes.error) throw new Error(`account: ${accountRes.error.message}`);
+  if (pointsRes.error) throw new Error(`points: ${pointsRes.error.message}`);
 
   const { data: profile } = profileRes;
   const { data: account } = accountRes;
+  const points = pointsRes.data;
   return {
     userId: user.id,
     email: user.email,
@@ -56,8 +62,12 @@ export const getAccountSummary = cache(async (): Promise<AccountSummary | null> 
     memberCode: profile.member_code,
     referralCode: profile.referral_code,
     accountId: account.id,
-    balance: account.balance?.balance ?? 0,
-    lifetimeEarned: account.balance?.lifetime_earned ?? 0,
+    balance: points?.balance ?? 0,
+    available: points?.available ?? 0,
+    lifetimeEarned: points?.lifetime_earned ?? 0,
+    expiringSoon: points?.expiring_30d ?? 0,
+    // Generated types mark this non-null, but min() over no rows is NULL.
+    nextExpiryAt: (points?.next_expiry_at as string | null | undefined) ?? null,
     tier: account.tier
       ? { name: account.tier.name, multiplierBps: account.tier.multiplier_bps }
       : null,

@@ -5,7 +5,7 @@ import type { Database } from "@/lib/database.types";
 import { env } from "@/lib/env";
 
 /** Routes that need a signed-in user. The DAL re-checks; this only avoids a wasted render. */
-const PROTECTED_PREFIXES = ["/account", "/cart", "/checkout", "/orders"];
+const PROTECTED_PREFIXES = ["/account", "/cart", "/checkout", "/orders", "/staff"];
 /** Auth pages a signed-in user has no reason to see. */
 const GUEST_ONLY = ["/login", "/signup", "/forgot-password"];
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SessionSync } from "@/components/session-sync";
 import { buttonVariants } from "@/components/ui/button";
 import { displayName, getAccountSummary } from "@/lib/data/account";
+import { getStaffContext } from "@/lib/data/staff";
 import { formatPoints } from "@/lib/format";
 
 import { AccountMenu } from "./account-menu";
@@ -11,7 +12,7 @@ import { CartButton } from "./cart-button";
 
 /** Header controls that depend on the session. Rendered behind <Suspense>. */
 export async function UserNav() {
-  const summary = await getAccountSummary();
+  const [summary, staff] = await Promise.all([getAccountSummary(), getStaffContext()]);
 
   if (!summary) {
     return (
@@ -33,14 +34,18 @@ export async function UserNav() {
       <Link
         href="/account"
         className={buttonVariants({ variant: "secondary", className: "tabular-nums" })}
-        aria-label={`${formatPoints(summary.balance)} available. View account`}
+        aria-label={`${formatPoints(summary.available)} available. View account`}
       >
         <CoinsIcon aria-hidden />
-        <span data-testid="points-balance">{summary.balance.toLocaleString("en-IN")}</span>
+        <span data-testid="points-balance">{summary.available.toLocaleString("en-IN")}</span>
         <span className="hidden text-muted-foreground sm:inline">pts</span>
       </Link>
       <CartButton />
-      <AccountMenu name={displayName(summary)} tier={summary.tier?.name ?? null} />
+      <AccountMenu
+        name={displayName(summary)}
+        tier={summary.tier?.name ?? null}
+        isStaff={staff !== null}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ const inr = new Intl.NumberFormat("en-IN", {
 });
 const count = new Intl.NumberFormat("en-IN");
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" });
+const dayOnly = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
 
 /** 119500 → "₹1,195". Money is stored as integer paise everywhere. */
 export function formatPaise(paise: number): string {
@@ -18,6 +19,10 @@ export function formatPoints(points: number): string {
 
 export function formatDateTime(iso: string): string {
   return date.format(new Date(iso));
+}
+
+export function formatDate(iso: string): string {
+  return dayOnly.format(new Date(iso));
 }
 
 /** Whole-percent discount between list and sale price, or 0. */

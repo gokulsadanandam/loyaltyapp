@@ -867,6 +867,17 @@ export type Database = {
       };
       custom_access_token_hook: { Args: { event: Json }; Returns: Json };
       fulfill_order: { Args: { p_order_id: string; p_payment_ref?: string }; Returns: string };
+      my_points_summary: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          account_id: string;
+          available: number;
+          balance: number;
+          expiring_30d: number;
+          lifetime_earned: number;
+          next_expiry_at: string;
+        }[];
+      };
       nearby_stores: {
         Args: { p_lat: number; p_lng: number; p_merchant_id?: string; p_radius_m?: number };
         Returns: {
