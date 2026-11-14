@@ -148,6 +148,7 @@ select results_eq(
      order by 1 $$,
   $$ values ('admin_adjust(uuid,integer,text,uuid)'),
             ('fulfill_order(uuid,text)'),
+            ('merchant_analytics(integer,uuid)'),
             ('my_points_summary()'),
             ('my_referrals()'),
             ('nearby_stores(double precision,double precision,integer,uuid)'),

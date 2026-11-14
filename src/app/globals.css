@@ -49,6 +49,10 @@
 }
 
 :root {
+  /* Data-viz series (validated: dataviz validate_palette.js, light vs #ffffff). */
+  --viz-series-1: #2a78d6;
+  --viz-series-2: #eb6834;
+  --viz-grid: #e6e5e1;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -84,6 +88,10 @@
 }
 
 .dark {
+  /* Dark steps of the same hues (validated vs #1a1a19). */
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+  --viz-grid: #34332f;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

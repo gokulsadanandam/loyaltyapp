@@ -25,6 +25,9 @@ export async function StaffNav() {
           <Link href="/staff/rewards" className={LINK}>
             Rewards
           </Link>
+          <Link href="/staff/analytics" className={LINK}>
+            Analytics
+          </Link>
         </>
       ) : null}
     </nav>

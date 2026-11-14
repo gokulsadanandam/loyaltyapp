@@ -957,6 +957,7 @@ export type Database = {
       };
       custom_access_token_hook: { Args: { event: Json }; Returns: Json };
       fulfill_order: { Args: { p_order_id: string; p_payment_ref?: string }; Returns: string };
+      merchant_analytics: { Args: { p_days?: number; p_merchant_id?: string }; Returns: Json };
       my_points_summary: {
         Args: Record<PropertyKey, never>;
         Returns: {
