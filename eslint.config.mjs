@@ -34,6 +34,10 @@ export default defineConfig([
         { checksVoidReturn: { attributes: false } },
       ],
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { ignoreRestSiblings: true, argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
   {
@@ -43,6 +47,16 @@ export default defineConfig([
       "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/consistent-indexed-object-style": "off",
       "@typescript-eslint/no-redundant-type-constituents": "off",
+    },
+  },
+  {
+    // Vendored shadcn/ui primitives: kept close to upstream so `shadcn add` updates
+    // stay diffable. Label receives htmlFor from its callers.
+    files: ["src/components/ui/**"],
+    rules: {
+      "@typescript-eslint/array-type": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
+      "jsx-a11y/label-has-associated-control": "off",
     },
   },
   prettier,
