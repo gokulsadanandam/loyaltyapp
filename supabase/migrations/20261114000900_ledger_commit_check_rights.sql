@@ -1,0 +1,16 @@
+-- Fix: the zero-sum check failed every real points transaction at COMMIT.
+--
+-- ledger_entries_zero_sum is a DEFERRED constraint trigger, so it fires at COMMIT
+-- as the *session* role, not inside the SECURITY DEFINER function that inserted
+-- the entries. With invoker rights:
+--   * supabase_auth_admin (Supabase Auth, during signup) has no grant on
+--     ledger_entries -> "permission denied", so every signup failed;
+--   * authenticated (PostgREST RPCs) is subject to RLS, which hides the
+--     system-account leg -> a false "ledger_unbalanced" on checkout redemption,
+--     reward redemption and staff awards.
+-- pgTAP did not catch it because every test file ended in ROLLBACK, where deferred
+-- triggers never fire. tests/database/05_commit_time_checks covers it now.
+--
+-- Running the check with owner rights lets it see every leg. It only reads
+-- ledger_entries for the transaction being checked and returns nothing to the caller.
+alter function private.ledger_assert_balanced() security definer;
