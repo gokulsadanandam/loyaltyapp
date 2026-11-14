@@ -85,14 +85,24 @@ every GitHub secret, the variable and the Vercel production variables, generatin
 
 ### 5. First deploy
 
-Push to `master`, or re-run the latest "CI / Deploy" workflow. The deploy job applies all
-migrations to the empty database, then deploys the app.
+Push to `master`, or run the "CI / Deploy" workflow. The deploy job applies all migrations
+to the empty database, then builds the app. **The first app build fails** until the catalog
+exists: product pages are prerendered and the home page reads the merchant's rules. That's
+expected. Do step 6, then re-run the failed deploy job (Actions → the run → Re-run failed
+jobs). Migrations are already applied, so the re-run only builds and deploys.
+
+After the migrations are applied, also set **Authentication → Auth Hooks → Customize Access
+Token** to the Postgres function `public.custom_access_token_hook` (step 2).
 
 ### 6. Load the catalog (once)
 
 Production never runs the dev seed: `supabase/seed/02_dev_users.sql` contains test accounts
 with known passwords. Load only the catalog: the default merchant, tiers, stores, the 19
 legacy products and the starter rewards. It refuses to run twice.
+
+Easiest: paste `supabase/seed/01_catalog.sql` into Supabase → SQL Editor and run it. If the
+editor warns that the query "creates a table without RLS", choose **Run without RLS**: the
+script only inserts rows, and RLS is already enabled by the migrations. Or, with psql:
 
 ```bash
 # Connection string: Supabase dashboard → Connect → Session pooler (URI)
