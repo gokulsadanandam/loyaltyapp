@@ -6,19 +6,21 @@ import { z } from "zod";
  * Server-only secrets, validated on first use (not at import), so pages that
  * never touch them build and run without them configured.
  */
-const schema = z
-  .object({
-    SUPABASE_SECRET_KEY: z.string().min(20),
-    CRON_SECRET: z.string().min(24, "CRON_SECRET must be at least 24 characters."),
-    EMAIL_FROM: z.string().min(3),
-    RESEND_API_KEY: z.string().min(10).optional(),
-    MAILPIT_URL: z.url().optional(),
-  })
-  .refine((v) => v.RESEND_API_KEY ?? v.MAILPIT_URL, {
-    message: "Set RESEND_API_KEY (production) or MAILPIT_URL (local) to send email.",
-  });
+const schema = z.object({
+  SUPABASE_SECRET_KEY: z.string().min(20),
+  CRON_SECRET: z.string().min(24, "CRON_SECRET must be at least 24 characters."),
+  EMAIL_FROM: z.string().min(3),
+  // Neither set = email off: notifications stay in-app and queue until a transport exists.
+  RESEND_API_KEY: z.string().min(10).optional(),
+  MAILPIT_URL: z.url().optional(),
+});
 
 export type ServerEnv = z.infer<typeof schema>;
+
+/** Whether an email transport (Resend in production, Mailpit locally) is configured. */
+export function emailEnabled(config: ServerEnv): boolean {
+  return Boolean(config.RESEND_API_KEY ?? config.MAILPIT_URL);
+}
 
 let cached: ServerEnv | undefined;
 

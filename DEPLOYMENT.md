@@ -60,7 +60,7 @@ Do these in order. Steps 1–5 take about 30 minutes; nothing deploys until step
 | `CRON_SECRET`                          | 24+ random characters (`openssl rand -hex 24`)                                            |
 | `EMAIL_FROM`                           | for example `Your Shop <hello@yourshop.com>` (a domain verified with your email provider) |
 | `QR_HMAC_SECRET`                       | 32+ random characters (`openssl rand -base64 32`); signs member QR codes                  |
-| `RESEND_API_KEY`                       | Resend API key, for notification emails                                                   |
+| `RESEND_API_KEY`                       | Resend API key. Optional: without it notification emails are off (in-app only)            |
 
 ### 4. GitHub secrets and variables
 
@@ -77,6 +77,11 @@ reviewers so each deploy waits for a click. Then add:
 | Secret   | `VERCEL_PROJECT_ID`     | from step 3.2                               |
 | Secret   | `CRON_SECRET`           | the same value as in Vercel                 |
 | Variable | `PRODUCTION_URL`        | `https://<your-domain>` (no trailing slash) |
+
+**Shortcut for steps 3.3 and 4:** copy `.env.deploy.example` to `.env.deploy`, fill it in,
+then run `bash scripts/push-secrets.sh` (needs `gh auth login` and `npx vercel link`). It sets
+every GitHub secret, the variable and the Vercel production variables, generating
+`CRON_SECRET` and `QR_HMAC_SECRET` if blank. Delete `.env.deploy` afterwards.
 
 ### 5. First deploy
 

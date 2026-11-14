@@ -4,12 +4,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { env } from "@/lib/env";
 import { renderNotificationEmail, sendEmail } from "@/lib/notifications/email";
-import { serverEnv } from "@/lib/server-env";
+import { emailEnabled, serverEnv } from "@/lib/server-env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Drains the notification email outbox. Called by Vercel Cron (GET, with
- * `Authorization: Bearer $CRON_SECRET`) or any scheduler that can send that header.
+ * Drains the notification email outbox. Called every 10 minutes by the GitHub Actions
+ * schedule (`Authorization: Bearer $CRON_SECRET`), or any scheduler that can send that header.
  * Rows are claimed with FOR UPDATE SKIP LOCKED, so overlapping runs are safe.
  */
 
@@ -26,6 +26,11 @@ async function deliver(request: NextRequest) {
   const config = serverEnv();
   if (!authorized(request, config.CRON_SECRET)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  // No transport yet: leave the queue untouched (rows stay pending) and report success,
+  // so the scheduler stays green until RESEND_API_KEY is added.
+  if (!emailEnabled(config)) {
+    return NextResponse.json({ claimed: 0, sent: 0, failed: 0, emailEnabled: false });
   }
 
   const supabase = createAdminClient();
