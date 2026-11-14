@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# loyalty-web
 
-## Getting Started
+Rebuild of the legacy `loyaltyapp/` (Express + AngularJS + MongoDB) on Next.js App Router,
+TypeScript (strict), Tailwind + shadcn/ui, and Supabase.
 
-First, run the development server:
+**Phase 1 (this commit): database foundation only.** No UI yet.
+
+## Prerequisites
+
+- Node 22+ (`.nvmrc`)
+- Docker Desktop (required by `supabase start`; on Windows this needs WSL2)
+
+## Local setup
 
 ```bash
+npm install
+npm run db:start          # boots local Supabase; prints URL + keys
+cp .env.example .env.local  # paste the publishable + secret keys from `npx supabase status`
+npm run db:reset          # migrations + seed.sql + storage objects
+npm run db:test           # pgTAP suite (supabase/tests/database)
+npm run db:types          # regenerate src/lib/database.types.ts
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Seeded logins (local only): `customer@example.com` / `Password123`,
+`admin@example.com` / `Password123` (merchant owner).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database layout
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Migration          | Contents                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `…0100_foundation` | PostGIS, `private` schema, enums, deny-by-default privileges                                                           |
+| `…0200_core`       | merchants, profiles, merchant_staff, tiers, loyalty_accounts                                                           |
+| `…0300_commerce`   | stores (PostGIS), products, rewards, cart_items, orders, order_items, reward_redemptions                               |
+| `…0400_ledger`     | double-entry ledger, point lots, balances, invariant triggers, `post_points`                                           |
+| `…0500_auth_rls`   | `handle_new_user`, access-token hook, RLS helpers + policies, grants                                                   |
+| `…0600_storage`    | `avatars` + `product-images` buckets and object policies                                                               |
+| `…0700_rpcs`       | `place_order`, `fulfill_order`, `refund_order`, `redeem_reward`, `staff_award_points`, `admin_adjust`, `nearby_stores` |
+| `…0800_audit`      | audit_log + triggers                                                                                                   |
 
-## Learn More
+### Rules the database enforces
 
-To learn more about Next.js, take a look at the following resources:
+- Points move only through `private.post_points`; clients have no write grant on any ledger,
+  balance, lot, order, or redemption table.
+- Every ledger transaction sums to zero (deferred constraint trigger); history is append-only.
+- `point_balances.balance >= 0` is a CHECK constraint, independent of RPC logic.
+- Every mutating RPC takes the customer's `point_balances` row lock first, then checks its
+  idempotency key, so retries and concurrent requests are applied at most once.
+- Prices are always read from `products`; the client sends only IDs, quantities, and keys.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### RPC error contract
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Errors surface as `{ code, message }` from PostgREST. `message` is a stable identifier:
+`not_authenticated` (28000), `forbidden` (42501), and P0001 business errors such as
+`cart_empty`, `insufficient_points`, `redeem_limit_exceeded`, `reward_out_of_stock`,
+`idempotency_key_reused`, `order_already_fulfilled`.
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Script            | Purpose                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `npm run check`   | typecheck + lint + prettier check                       |
+| `npm run db:lint` | `supabase db lint` (plpgsql_check) against the local DB |
