@@ -59,13 +59,18 @@ done
 [[ $PRODUCTION_URL == https://* ]] || { echo "PRODUCTION_URL must start with https://"; exit 1; }
 
 # Local CLI, never npx: npx echoes the full command line.
-VERCEL=(node_modules/.bin/vercel)
-[[ -x ${VERCEL[0]} ]] || { echo "Run npm install first"; exit 1; }
+VERCEL_BIN=node_modules/.bin/vercel
+[[ -x $VERCEL_BIN ]] || { echo "Run npm install first"; exit 1; }
+# The CLI prefers a VERCEL_TOKEN env var over your login, and .env.deploy just exported one.
+VERCEL=(env -u VERCEL_TOKEN "$VERCEL_BIN")
 "${VERCEL[@]}" whoami >/dev/null 2>&1 || { echo "Run: npx vercel login"; exit 1; }
 # The token CI will use must reach this project (scope = the team the project lives in).
-if ! "${VERCEL[@]}" project inspect "$VERCEL_PROJECT_ID" --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN" >/dev/null 2>&1; then
-  echo "VERCEL_TOKEN can't access this project. Recreate it at vercel.com/account/settings/tokens"
-  echo "with Scope set to the team that owns loyalty-web, then update .env.deploy."
+if ! out=$(env -u VERCEL_TOKEN "$VERCEL_BIN" project inspect "$VERCEL_PROJECT_ID" \
+  --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN" 2>&1); then
+  echo "VERCEL_TOKEN can't access this project:"
+  printf '%s\n' "$out" | grep -E '"(code|message)"|^Error' | head -3
+  echo "Recreate it at vercel.com/account/settings/tokens with Scope set to the team that"
+  echo "owns loyalty-web, then update .env.deploy."
   exit 1
 fi
 
